@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 # ================================
 # CONFIGURAZIONE PAGINA
 # ================================
-st.set_page_config(page_title="Dashboard SURVEILLANCE", layout="wide")
+st.set_page_config(page_title="CORRADENSTEIN", layout="wide")
 
 # ================================
 # TICKERS
@@ -68,9 +68,9 @@ TICKERS = {
 # CACHE FUNZIONI
 # ================================
 @st.cache_data(ttl=3600)
-def load_data(ticker):
-    """Scarica dati storici da Yahoo Finance."""
-    df = yf.download(ticker, period="5y", interval="1d", progress=False)
+def load_data_multiple(tickers):
+    """Scarica tutti i ticker in una volta sola."""
+    df = yf.download(tickers=list(tickers), period="5y", interval="1d", progress=False, group_by='ticker')
     return df
 
 @st.cache_data(ttl=3600)
@@ -104,7 +104,7 @@ with tab1:
     st.title("📈 SURVEILLANCE Portfolio – Stock Screener")
     
     with st.sidebar:
-        st.header("Parametri Tab1")
+        st.header("Parametri CALIBRA")
         historical_period = st.selectbox("Numero valori storici", [120,360,720])
         forecast_period = st.selectbox("Previsione futura (giorni)", [30,60,120])
         run_tab1 = st.button("Applica", key="tab1_run")
@@ -112,6 +112,10 @@ with tab1:
     if run_tab1:
         rows = []
         num_tickers = len(TICKERS)
+        
+        # scarica tutti i dati insieme
+        all_data = load_data_multiple(TICKERS.values())
+        
         progress_bar = st.progress(0)
         progress_text = st.empty()
         
@@ -122,7 +126,12 @@ with tab1:
                        "FORECAST MIN":np.nan,"FORECAST VALUE":np.nan,"FORECAST MAX":np.nan,
                        "Δ % FORECAST":np.nan,"STATUS":"OK"}
                 try:
-                    df_raw = load_data(ticker)
+                    # prendi i dati dal DataFrame multi-ticker
+                    if ticker not in all_data:
+                        row["STATUS"] = "NO DATA"
+                        rows.append(row)
+                        continue
+                    df_raw = all_data[ticker].copy()
                     if df_raw.empty or "Close" not in df_raw.columns:
                         row["STATUS"]="NO DATA"
                         rows.append(row)
