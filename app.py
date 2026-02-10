@@ -73,6 +73,9 @@ TICKERS = {
 # ================================
 # TAB 1: CALIBRA SURVEILLANCE
 # ================================
+# ================================
+# TAB 1: CALIBRA SURVEILLANCE CON PROGRESS BAR
+# ================================
 with tab1:
     st.title("📈 Calibra Surveillance – Stock Screener")
 
@@ -105,22 +108,18 @@ with tab1:
                "ON MKT": np.nan, "MIN": np.nan, "AVG": np.nan, "MAX": np.nan,
                "FORECAST MIN": np.nan, "FORECAST VALUE": np.nan, "FORECAST MAX": np.nan,
                "Δ % FORECAST": np.nan}
-
         try:
             if 'Close' not in df_all or ticker not in df_all['Close'].columns:
                 row["STATUS"] = "NO DATA"
                 return row
-
             df_close = df_all['Close'][ticker].dropna().tail(historical_period)
             if len(df_close) < 20:
                 row["STATUS"] = "INSUFFICIENT DATA"
                 return row
-
             forecast, conf = run_arima_cached(df_close, forecast_period)
             if forecast is None:
                 row["STATUS"] = "ARIMA ERROR"
                 return row
-
             on_mkt = float(df_close.iloc[-1].round(2))
             row.update({
                 "ON MKT": on_mkt,
@@ -132,23 +131,23 @@ with tab1:
                 "FORECAST MAX": float(conf.iloc[-1,1].round(2)),
                 "Δ % FORECAST": float(((forecast.iloc[-1]-on_mkt)/on_mkt*100).round(2))
             })
-
         except:
             row["STATUS"] = "ARIMA ERROR"
-
         return row
 
     if run:
         st.info("Calcolo in corso...")
         df_all = load_all_data(TICKERS)
         rows = []
+        progress_bar = st.progress(0)
+        total = len(TICKERS)
 
-        with st.spinner("Elaborazione ticker..."):
-            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-                futures = [executor.submit(compute_row, name, ticker, historical_period, forecast_period, df_all)
-                           for name, ticker in TICKERS.items()]
-                for future in concurrent.futures.as_completed(futures):
-                    rows.append(future.result())
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {executor.submit(compute_row, name, ticker, historical_period, forecast_period, df_all): ticker
+                       for name, ticker in TICKERS.items()}
+            for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                rows.append(future.result())
+                progress_bar.progress((i+1)/total)
 
         df = pd.DataFrame(rows).round(2)
 
