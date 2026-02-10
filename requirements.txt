@@ -1,5 +1,5 @@
-streamlit>=1.30
-pandas
-numpy
-yfinance
-statsmodels
+streamlit>=1.26.0
+pandas>=2.0.3
+numpy>=1.26.0
+yfinance>=0.2.27
+statsmodels>=0.14.1
