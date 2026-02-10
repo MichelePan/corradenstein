@@ -8,10 +8,18 @@ import concurrent.futures
 
 warnings.filterwarnings("ignore")
 
-st.set_page_config(page_title="Dashboard Unificata", layout="wide")
+# ================================
+# CONFIG
+# ================================
+st.set_page_config(page_title="Dashboard Portfolio", layout="wide")
 
 # ================================
-# Tickers
+# TABS
+# ================================
+tab1, tab2 = st.tabs(["📈 Calibra Surveillance", "🧮 Calcolatore Variazione"])
+
+# ================================
+# TICKERS
 # ================================
 TICKERS = {
     "ALPHABET INC": "GOOGL",
@@ -63,15 +71,11 @@ TICKERS = {
 }
 
 # ================================
-# Tabs
-# ================================
-tab1, tab2 = st.tabs(["Calibra Surveillance", "Calcolatore Variazione"])
-
-# ================================
-# Tab 1: Calibra Surveillance
+# TAB 1: CALIBRA SURVEILLANCE
 # ================================
 with tab1:
     st.title("📈 Calibra Surveillance – Stock Screener")
+
     with st.sidebar:
         st.header("Parametri")
         historical_period = st.selectbox("Numero valori storici", [120, 360, 720])
@@ -101,18 +105,22 @@ with tab1:
                "ON MKT": np.nan, "MIN": np.nan, "AVG": np.nan, "MAX": np.nan,
                "FORECAST MIN": np.nan, "FORECAST VALUE": np.nan, "FORECAST MAX": np.nan,
                "Δ % FORECAST": np.nan}
+
         try:
             if 'Close' not in df_all or ticker not in df_all['Close'].columns:
                 row["STATUS"] = "NO DATA"
                 return row
+
             df_close = df_all['Close'][ticker].dropna().tail(historical_period)
             if len(df_close) < 20:
                 row["STATUS"] = "INSUFFICIENT DATA"
                 return row
+
             forecast, conf = run_arima_cached(df_close, forecast_period)
             if forecast is None:
                 row["STATUS"] = "ARIMA ERROR"
                 return row
+
             on_mkt = float(df_close.iloc[-1].round(2))
             row.update({
                 "ON MKT": on_mkt,
@@ -124,23 +132,23 @@ with tab1:
                 "FORECAST MAX": float(conf.iloc[-1,1].round(2)),
                 "Δ % FORECAST": float(((forecast.iloc[-1]-on_mkt)/on_mkt*100).round(2))
             })
+
         except:
             row["STATUS"] = "ARIMA ERROR"
+
         return row
 
     if run:
         st.info("Calcolo in corso...")
         df_all = load_all_data(TICKERS)
         rows = []
-        progress_bar = st.progress(0)
-        total = len(TICKERS)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {executor.submit(compute_row, name, ticker, historical_period, forecast_period, df_all): ticker
-                       for name, ticker in TICKERS.items()}
-            for i, future in enumerate(concurrent.futures.as_completed(futures)):
-                rows.append(future.result())
-                progress_bar.progress((i+1)/total)
+        with st.spinner("Elaborazione ticker..."):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+                futures = [executor.submit(compute_row, name, ticker, historical_period, forecast_period, df_all)
+                           for name, ticker in TICKERS.items()]
+                for future in concurrent.futures.as_completed(futures):
+                    rows.append(future.result())
 
         df = pd.DataFrame(rows).round(2)
 
@@ -172,71 +180,75 @@ with tab1:
         st.info("👈 Imposta i parametri e premi **Applica**")
 
 # ================================
-# Tab 2: Calcolatore Variazione (con layout, colori e calcolo negativo)
+# TAB 2: CALCOLATORE VARIAZIONE
 # ================================
 with tab2:
     st.title("🧮 Calcolatore Aumento/Decremento Percentuale")
 
-    # --- CSS per styling ---
+    # --- Funzioni helper
     st.markdown("""
     <style>
-        .output-container{background-color:#e0f7fa;padding:15px 10px;border-radius:5px;border:1px solid #00bcd4;text-align:center;margin-bottom:10px;}
-        .cell-label{font-size:0.8em;color:#555;margin-bottom:5px;font-weight:bold;}
+        .input-container {background: linear-gradient(135deg,#fff9c4,#fff176);padding:10px;border-radius:5px;border:1px solid #fbc02d;height:100%;display:flex;flex-direction:column;justify-content:center;}
+        .output-container {background-color:#e0f7fa;padding:15px 10px;border-radius:5px;border:1px solid #00bcd4;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;margin-bottom:10px;}
+        .cell-label{font-size:0.8em;color:#555;margin-bottom:5px;text-transform:uppercase;font-weight:bold;}
         .cell-value{font-size:1.2em;font-weight:bold;}
         .text-red{color:red;}.text-black{color:black;}
     </style>
     """, unsafe_allow_html=True)
 
-    def styled_output(label,value,is_out=False):
-        if isinstance(value,float): val_str=f"{value:.2f}"
-        else: val_str=str(value)
-        text_class="text-red" if (value<0 or is_out) else "text-black"
+    def styled_input(label, key, value=0.0):
+        val = st.number_input(label, value=float(value), key=key, format="%.2f")
+        return val
+
+    def styled_output(label, value, is_out=False):
+        if isinstance(value,float):
+            val_str = f"{value:.2f}"
+        else:
+            val_str = str(value)
+        text_class = "text-red" if (value<0 or is_out) else "text-black"
         st.markdown(f'<div class="output-container"><div class="cell-label">{label}</div><div class="cell-value {text_class}">{val_str}</div></div>', unsafe_allow_html=True)
 
-    # --- Input numero ---
-    def input_float(label,key,val=0.0):
-        return st.number_input(label,value=float(val),format="%.2f",key=key)
+    st.subheader("Calcolatore Variazione Percentuale Positiva")
 
-    # --- Layout colonne e placeholder ---
-    # Positivo
-    c1,c2,c3,c4=st.columns(4)
-    start_pos = input_float("START","start_pos")
-    end_pos = input_float("END","end_pos")
-    incr_display_pos=c3.empty()
-    var_display_pos=c4.empty()
+    # INPUTS
+    start_pos = styled_input("START", "start_pos")
+    end_pos = styled_input("END", "end_pos")
+    qty_pos = styled_input("QTY", "qty_pos")
+    hyp_pos = styled_input("HYP", "hyp_pos")
+    out_f = styled_input("OUT/F", "out_f")
+    atx = styled_input("ATX%", "atx")
 
-    c5,c6,c7,c8=st.columns(4)
-    qty_pos=input_float("QTY","qty_pos")
-    lqy_display_pos=c6.empty()
-    pl_display_pos=c7.empty()
-    hyp_pos=input_float("HYP","hyp_pos")
+    calculate = st.button("CALCOLA/RESET")
 
-    c9,c10,c11=st.columns(3)
-    out_display_pos=c9.empty()
-    res_display_pos=c10.empty()
-    val_display_pos=c11.empty()
+    if calculate:
+        # --- LOGICA POSITIVA ---
+        incr = end_pos - start_pos
+        var = (incr/start_pos*100) if start_pos!=0 else 0
+        lqy = start_pos*qty_pos
+        pl = end_pos*qty_pos - lqy
+        out = lqy/hyp_pos if hyp_pos!=0 else 0
+        res = qty_pos - out
+        val = hyp_pos*out
+        cst = start_pos*out_f
+        gr_inc = hyp_pos*out_f
+        gr_pl = gr_inc - cst
+        tx = gr_pl*atx/100
+        n_pl = gr_pl - tx
+        n_inc = gr_inc - tx
+        diff = n_inc - lqy
 
-    c12,c13,c14,c15,c16=st.columns(5)
-    out_f_input=input_float("OUT/F","out_f")
-    cst_display=c13.empty()
-    gr_inc_display=c14.empty()
-    gr_pl_display=c15.empty()
-    atx_input=input_float("ATX%","atx")
-
-    c17,c18,c19,c20=st.columns(4)
-    tx_display=c17.empty()
-    n_pl_display=c18.empty()
-    n_inc_display=c19.empty()
-    diff_display=c20.empty()
-
-    # Negativo
-    n1,n2,n3,n4=st.columns(4)
-    start_neg=input_float("START","start_neg")
-    end_neg=input_float("END","end_neg")
-    incr_display_neg=n3.empty()
-    var_display_neg=n4.empty()
-
-    n5,n6,n7,n8=st.columns(4)
-    qty_neg=input_float("QTY","qty_neg")
-    lqy_display_neg=n6.empty()
-    npl_display_neg=n7.empty()
+        # OUTPUT
+        styled_output("INCR", incr)
+        styled_output("VAR", var)
+        styled_output("LQY CMD", lqy)
+        styled_output("P/L", pl)
+        styled_output("OUT", out, is_out=True)
+        styled_output("RES", res)
+        styled_output("VAL", val)
+        styled_output("CST", cst)
+        styled_output("GR/INC", gr_inc)
+        styled_output("GR/P/L", gr_pl)
+        styled_output("TX", tx)
+        styled_output("N/P/L", n_pl)
+        styled_output("N/INC", n_inc)
+        styled_output("DIFF", diff)
