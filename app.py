@@ -10,191 +10,156 @@ warnings.filterwarnings("ignore")
 # ================================
 # CONFIGURAZIONE PAGINA
 # ================================
-st.set_page_config(page_title="Dashboard Unica", layout="wide")
+st.set_page_config(page_title="Dashboard SURVEILLANCE", layout="wide")
 
 # ================================
-# TAB
+# TICKERS
 # ================================
-tab1, tab2 = st.tabs(["📈 Stock Screener", "🧮 Calcolatore Variazioni"])
+TICKERS = {
+    "ALPHABET INC": "GOOGL",
+    "AMAZON": "AMZN",
+    "AMERICA AIRLINES": "AAL",
+    "AMERICAN BATTERY TECHNOLOGY COMPANY": "ABAT",
+    "ATOSSA THERAPEUTICS INC": "ATOS",
+    "ALIBABA GROUP HOLDING": "BABA",
+    "BANK OF AMERICA CORP": "BAC",
+    "BEYOND MEAT": "BYND",
+    "CENOVUS ENERGY INC": "CVE",
+    "CERENCE": "CRNC",
+    "CLEAN ENERGY FUELS CORP": "CLNE",
+    "COMCAST CORPORATION": "CMCSA",
+    "COTERRA ENERGY INC": "CTRA",
+    "CRONOS GROUP INC": "CRON",
+    "DELTA AIRLINES": "DAL",
+    "DEVON ENERGY CORPORATION": "DVN",
+    "EBAY INC": "EBAY",
+    "FISERV": "FISV",
+    "FORD MOTOR CO": "F",
+    "HASBRO": "HAS",
+    "HP INC": "HPQ",
+    "HUNTINGTON BANCSHARES INC": "HBAN",
+    "ICAHN ENTERPRISES LP": "IEP",
+    "INCANNEX HEALTHCARE INC": "IXHL",
+    "INTEL": "INTC",
+    "IONIS PHARMACEUTICALS": "IONS",
+    "KOSMOS ENERGY LTD": "KOS",
+    "LYFT INC": "LYFT",
+    "NETFLIX": "NFLX",
+    "NEW FORTRESS ENERGY INC": "NFE",
+    "NVIDIA": "NVDA",
+    "PAYPAL HOLDINGS INC": "PYPL",
+    "PELOTON INTERACTIVE": "PTON",
+    "PINTEREST INC": "PINS",
+    "REVIVA PHARMACEUTICALS HOLDING INC": "RVPH",
+    "RIVIAN AUTOMOTIVE INC": "RIVN",
+    "SNAP INC": "SNAP",
+    "TARGET HOSPITAL CORP": "TH",
+    "THE COCA-COLA COMPANY": "KO",
+    "THE WALT DISNEY COMPANY": "DIS",
+    "TESLA": "TSLA",
+    "TILRAY BRANDS INC": "TLRY",
+    "TRANSOCEAN LTD": "RIG",
+    "TRAWS PHARMA INC": "TRAW",
+    "UNIQURE NV": "QURE",
+    "VITAL ENERGY INC": "VTLE"
+}
 
 # ================================
-# TAB 1: STOCK SCREENER
+# CACHE FUNZIONI
+# ================================
+@st.cache_data(ttl=3600)
+def load_data(ticker):
+    df = yf.download(ticker, period="5y", interval="1d", progress=False)
+    return df
+
+@st.cache_data(ttl=3600)
+def run_arima(series, steps):
+    model = ARIMA(series, order=(2,0,2)).fit()
+    forecast = model.forecast(steps=steps)
+    conf = model.get_forecast(steps=steps).conf_int()
+    return forecast, conf
+
+def extract_close_column(df):
+    if "Close" in df.columns:
+        return df[["Close"]].copy()
+    if df.shape[1]==1:
+        return df.rename(columns={df.columns[0]:"Close"})
+    for c in df.columns:
+        if "close" in str(c).lower():
+            return df[[c]].rename(columns={c:"Close"})
+    raise ValueError("Colonna 'Close' non trovata")
+
+# ================================
+# CREAZIONE TAB
+# ================================
+tab1, tab2 = st.tabs(["Calibra Surveillance", "Calcolatore"])
+
+# ================================
+# TAB 1 - SURVEILLANCE
 # ================================
 with tab1:
-
-    # ----- Tickers -----
-    TICKERS = {
-        "ALPHABET INC": "GOOGL",
-        "AMAZON": "AMZN",
-        "AMERICA AIRLINES": "AAL",
-        "AMERICAN BATTERY TECHNOLOGY COMPANY": "ABAT",
-        "ATOSSA THERAPEUTICS INC": "ATOS",
-        "ALIBABA GROUP HOLDING": "BABA",
-        "BANK OF AMERICA CORP": "BAC",
-        "BEYOND MEAT": "BYND",
-        "CENOVUS ENERGY INC": "CVE",
-        "CERENCE": "CRNC",
-        "CLEAN ENERGY FUELS CORP": "CLNE",
-        "COMCAST CORPORATION": "CMCSA",
-        "COTERRA ENERGY INC": "CTRA",
-        "CRONOS GROUP INC": "CRON",
-        "DELTA AIRLINES": "DAL",
-        "DEVON ENERGY CORPORATION": "DVN",
-        "EBAY INC": "EBAY",
-        "FISERV": "FISV",
-        "FORD MOTOR CO": "F",
-        "HASBRO": "HAS",
-        "HP INC": "HPQ",
-        "HUNTINGTON BANCSHARES INC": "HBAN",
-        "ICAHN ENTERPRISES LP": "IEP",
-        "INCANNEX HEALTHCARE INC": "IXHL",
-        "INTEL": "INTC",
-        "IONIS PHARMACEUTICALS": "IONS",
-        "KOSMOS ENERGY LTD": "KOS",
-        "LYFT INC": "LYFT",
-        "NETFLIX": "NFLX",
-        "NEW FORTRESS ENERGY INC": "NFE",
-        "NVIDIA": "NVDA",
-        "PAYPAL HOLDINGS INC": "PYPL",
-        "PELOTON INTERACTIVE": "PTON",
-        "PINTEREST INC": "PINS",
-        "REVIVA PHARMACEUTICALS HOLDING INC": "RVPH",
-        "RIVIAN AUTOMOTIVE INC": "RIVN",
-        "SNAP INC": "SNAP",
-        "TARGET HOSPITAL CORP": "TH",
-        "THE COCA-COLA COMPANY": "KO",
-        "THE WALT DISNEY COMPANY": "DIS",
-        "TESLA": "TSLA",
-        "TILRAY BRANDS INC": "TLRY",
-        "TRANSOCEAN LTD": "RIG",
-        "TRAWS PHARMA INC": "TRAW",
-        "UNIQURE NV": "QURE",
-        "VITAL ENERGY INC": "VTLE"
-    }
-
-    # ----- CACHE -----
-    @st.cache_data(ttl=3600)
-    def load_data(ticker):
-        try:
-            df = yf.download(ticker, period="5y", interval="1d", progress=False)
-            return df
-        except:
-            return pd.DataFrame()
-
-    @st.cache_data(ttl=3600)
-    def run_arima(series, steps):
-        model = ARIMA(series, order=(2, 0, 2)).fit()
-        forecast = model.forecast(steps=steps)
-        conf = model.get_forecast(steps=steps).conf_int()
-        return forecast, conf
-
-    # ----- UI PARAMETRI -----
+    st.title("📈 SURVEILLANCE Portfolio – Stock Screener")
+    
     with st.sidebar:
-        st.header("Parametri Stock Screener")
-        historical_period = st.selectbox("Numero valori storici", [120, 360, 720])
-        forecast_period = st.selectbox("Previsione futura (giorni)", [30, 60, 120])
-        run = st.button("Applica Stock Screener")
-
-    # ----- LOGICA -----
-    if run:
+        st.header("Parametri Tab1")
+        historical_period = st.selectbox("Numero valori storici", [120,360,720])
+        forecast_period = st.selectbox("Previsione futura (giorni)", [30,60,120])
+        run_tab1 = st.button("Applica", key="tab1_run")
+    
+    if run_tab1:
         rows = []
         with st.spinner("Calcolo in corso..."):
             for name, ticker in TICKERS.items():
-                row = {
-                    "NAME": name,
-                    "TICKER": ticker,
-                    "ON MKT": np.nan,
-                    "MIN": np.nan,
-                    "AVG": np.nan,
-                    "MAX": np.nan,
-                    "FORECAST MIN": np.nan,
-                    "FORECAST VALUE": np.nan,
-                    "FORECAST MAX": np.nan,
-                    "Δ % FORECAST": np.nan,
-                    "STATUS": "OK"
-                }
-
+                row = {"NAME":name,"TICKER":ticker,"ON MKT":np.nan,
+                       "MIN":np.nan,"AVG":np.nan,"MAX":np.nan,
+                       "FORECAST MIN":np.nan,"FORECAST VALUE":np.nan,"FORECAST MAX":np.nan,
+                       "Δ % FORECAST":np.nan,"STATUS":"OK"}
                 try:
                     df_raw = load_data(ticker)
                     if df_raw.empty or "Close" not in df_raw.columns:
-                        row["STATUS"] = "NO DATA"
+                        row["STATUS"]="NO DATA"
                         rows.append(row)
                         continue
-
-                    df_close = df_raw[["Close"]].tail(historical_period)
-                    df_close = df_close[pd.to_numeric(df_close["Close"], errors="coerce").notna()]
-
-                    if df_close.empty:
-                        row["STATUS"] = "NO NUMERIC DATA"
+                    row["ON MKT"]=float(df_raw["Close"].iloc[-1])
+                    df_close=extract_close_column(df_raw).dropna().tail(historical_period)
+                    if len(df_close)<20:
+                        row["STATUS"]="INSUFFICIENT DATA"
                         rows.append(row)
                         continue
-
-                    row["ON MKT"] = float(df_close["Close"].iloc[-1])
-                    row["MIN"] = float(df_close["Close"].min().round(2))
-                    row["AVG"] = float(df_close["Close"].mean().round(2))
-                    row["MAX"] = float(df_close["Close"].max().round(2))
-
-                    if len(df_close) < 10:
-                        row["FORECAST MIN"] = row["MIN"]
-                        row["FORECAST VALUE"] = row["ON MKT"]
-                        row["FORECAST MAX"] = row["MAX"]
-                        row["Δ % FORECAST"] = 0
-                        row["STATUS"] = "INSUFFICIENT DATA"
-                    else:
-                        try:
-                            forecast, conf = run_arima(df_close["Close"], forecast_period)
-                            row["FORECAST MIN"] = float(conf.iloc[-1, 0].round(2))
-                            row["FORECAST VALUE"] = float(forecast.iloc[-1].round(2))
-                            row["FORECAST MAX"] = float(conf.iloc[-1, 1].round(2))
-                            row["Δ % FORECAST"] = float(
-                                ((row["FORECAST VALUE"] - row["ON MKT"]) / row["ON MKT"] * 100).round(2)
-                            )
-                        except:
-                            row["FORECAST MIN"] = row["MIN"]
-                            row["FORECAST VALUE"] = row["ON MKT"]
-                            row["FORECAST MAX"] = row["MAX"]
-                            row["Δ % FORECAST"] = 0
-                            row["STATUS"] = "ARIMA FALLBACK"
-
-                except:
-                    row["STATUS"] = "ERROR"
-
+                    forecast, conf = run_arima(df_close["Close"], forecast_period)
+                    row["MIN"]=float(df_close["Close"].min().round(2))
+                    row["AVG"]=float(df_close["Close"].mean().round(2))
+                    row["MAX"]=float(df_close["Close"].max().round(2))
+                    row["FORECAST MIN"]=float(conf.iloc[-1,0].round(2))
+                    row["FORECAST VALUE"]=float(forecast.iloc[-1].round(2))
+                    row["FORECAST MAX"]=float(conf.iloc[-1,1].round(2))
+                    row["Δ % FORECAST"]=float((row["FORECAST VALUE"]-row["ON MKT"])/row["ON MKT"]*100)
+                except Exception:
+                    row["STATUS"]="ARIMA ERROR"
                 rows.append(row)
-
-        df = pd.DataFrame(rows)
-
+        df = pd.DataFrame(rows).round(2)
+        
         def color_rows(row):
-            styles = []
+            styles=[]
             for col in row.index:
-                if col == "FORECAST VALUE" and not pd.isna(row[col]):
-                    styles.append("color: blue; font-weight:bold" if row[col] > row["ON MKT"] else "color:red; font-weight:bold")
-                elif col == "Δ % FORECAST" and not pd.isna(row[col]):
-                    if row[col] > 20:
-                        styles.append("color:green; font-weight:bold")
-                    elif row[col] < 0:
-                        styles.append("color:magenta; font-weight:bold")
-                    else:
-                        styles.append("")
-                elif col == "STATUS" and row[col] != "OK":
-                    styles.append("color:orange; font-weight:bold")
+                if col=="FORECAST VALUE" and not pd.isna(row[col]):
+                    styles.append("color: blue; font-weight:bold" if row[col]>row["ON MKT"] else "color:red;font-weight:bold")
+                elif col=="Δ % FORECAST" and not pd.isna(row[col]):
+                    styles.append("color:green;font-weight:bold" if row[col]>20 else ("color:magenta;font-weight:bold" if row[col]<0 else ""))
+                elif col=="STATUS" and row[col]!="OK":
+                    styles.append("color:orange;font-weight:bold")
                 else:
                     styles.append("")
             return styles
-
-        row_height = 35
-        header_height = 40
-        table_height = header_height + row_height * len(df)
-
-        st.dataframe(
-            df.style.apply(color_rows, axis=1),
-            use_container_width=True,
-            height=table_height
-        )
-    else:
-        st.info("👈 Imposta i parametri e premi **Applica**")
+        
+        row_height=35
+        header_height=40
+        table_height=header_height+row_height*len(df)
+        
+        st.dataframe(df.style.apply(color_rows, axis=1), use_container_width=True, height=table_height)
 
 # ================================
-# TAB 2: CALCOLATORE VARIAZIONI
+# TAB 2 - CALCOLATORE
 # ================================
 with tab2:
     st.title("Calcolatore Aumento e Decremento Percentuale")
@@ -276,22 +241,20 @@ with tab2:
     col_btn = st.columns([1,2,1])[1]
     calculate = col_btn.button("CALCOLA/RESET", type="primary", use_container_width=True)
 
-    # ========================
     # LOGICA CALCOLI
-    # ========================
     if calculate:
-        # --- POSITIVO ---
+        # POSITIVO
         val_incr_pos = end_pos - start_pos
-        val_var_pos = (val_incr_pos / start_pos * 100) if start_pos != 0 else 0
-        val_lqy_pos = start_pos * qty_pos
-        val_pl_pos = (end_pos * qty_pos) - val_lqy_pos
-        val_out_pos = val_lqy_pos / hyp_pos if hyp_pos != 0 else 0
+        val_var_pos = (val_incr_pos/start_pos*100) if start_pos!=0 else 0
+        val_lqy_pos = start_pos*qty_pos
+        val_pl_pos = (end_pos*qty_pos)-val_lqy_pos
+        val_out_pos = val_lqy_pos/hyp_pos if hyp_pos!=0 else 0
         val_res_pos = qty_pos - val_out_pos
         val_val_pos = hyp_pos * val_out_pos
-        val_cst = start_pos * out_f_input
-        val_gr_inc = hyp_pos * out_f_input
+        val_cst = start_pos*out_f_input
+        val_gr_inc = hyp_pos*out_f_input
         val_gr_pl = val_gr_inc - val_cst
-        val_tx = (val_gr_pl * atx_input)/100
+        val_tx = (val_gr_pl*atx_input)/100
         val_n_pl = val_gr_pl - val_tx
         val_n_inc = val_gr_inc - val_tx
         val_diff = val_n_inc - val_lqy_pos
@@ -312,16 +275,12 @@ with tab2:
         with c19: styled_output("N/INC", val_n_inc)
         with c20: styled_output("DIFF", val_diff)
 
-        # --- NEGATIVO ---
+        # NEGATIVO
         val_incr_neg = end_neg - start_neg
-        val_var_neg = (val_incr_neg / start_neg * 100) if start_neg !=0 else 0
-        val_lqy_neg = start_neg * qty_neg
-        val_npl_neg = (end_neg * qty_neg) - val_lqy_neg
-
+        val_var_neg = (val_incr_neg/start_neg*100) if start_neg!=0 else 0
+        val_lqy_neg = start_neg*qty_neg
+        val_npl_neg = (end_neg*qty_neg)-val_lqy_neg
         with n3: styled_output("INCR", val_incr_neg)
         with n4: styled_output("VAR", val_var_neg)
         with n6: styled_output("LQY CMD", val_lqy_neg)
         with n7: styled_output("N/P/L", val_npl_neg)
-    else:
-        # I placeholder rimangono vuoti in attesa del calcolo
-        pass
