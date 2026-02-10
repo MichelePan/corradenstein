@@ -69,7 +69,7 @@ TICKERS = {
 # ================================
 @st.cache_data(ttl=3600)
 def load_data_multiple(tickers):
-    """Scarica tutti i ticker in una volta sola."""
+    tickers = tuple(tickers)  # assicura hashable
     df = yf.download(tickers=list(tickers), period="5y", interval="1d", progress=False, group_by='ticker')
     return df
 
@@ -114,7 +114,7 @@ with tab1:
         num_tickers = len(TICKERS)
         
         # scarica tutti i dati insieme
-        all_data = load_data_multiple(TICKERS.values())
+        all_data = load_data_multiple(list(TICKERS.values()))
         
         progress_bar = st.progress(0)
         progress_text = st.empty()
