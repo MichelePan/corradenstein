@@ -119,7 +119,7 @@ with tab1:
         num_tickers = len(TICKERS)
         
         # download multi-ticker con cache e output nascosto
-        all_data = load_data_multiple(TICKERS.values())
+        all_data = load_data_multiple(list(TICKERS.values()))
         
         progress_bar = st.progress(0)
         progress_text = st.empty()
