@@ -8,18 +8,10 @@ import concurrent.futures
 
 warnings.filterwarnings("ignore")
 
-# ================================
-# CONFIG
-# ================================
-st.set_page_config(page_title="Dashboard Portfolio", layout="wide")
+st.set_page_config(page_title="Dashboard Unificata", layout="wide")
 
 # ================================
-# TABS
-# ================================
-tab1, tab2 = st.tabs(["📈 Calibra Surveillance", "🧮 Calcolatore Variazione"])
-
-# ================================
-# TICKERS
+# Tickers
 # ================================
 TICKERS = {
     "ALPHABET INC": "GOOGL",
@@ -71,14 +63,15 @@ TICKERS = {
 }
 
 # ================================
-# TAB 1: CALIBRA SURVEILLANCE
+# Tabs
 # ================================
+tab1, tab2 = st.tabs(["Calibra Surveillance", "Calcolatore Variazione"])
+
 # ================================
-# TAB 1: CALIBRA SURVEILLANCE CON PROGRESS BAR
+# Tab 1: Calibra Surveillance
 # ================================
 with tab1:
     st.title("📈 Calibra Surveillance – Stock Screener")
-
     with st.sidebar:
         st.header("Parametri")
         historical_period = st.selectbox("Numero valori storici", [120, 360, 720])
@@ -179,10 +172,7 @@ with tab1:
         st.info("👈 Imposta i parametri e premi **Applica**")
 
 # ================================
-# TAB 2: CALCOLATORE VARIAZIONE
-# ================================
-# ================================
-# TAB 2: CALCOLATORE VARIAZIONE CON LAYOUT
+# Tab 2: Calcolatore Variazione (con layout, colori e calcolo negativo)
 # ================================
 with tab2:
     st.title("🧮 Calcolatore Aumento/Decremento Percentuale")
@@ -190,96 +180,63 @@ with tab2:
     # --- CSS per styling ---
     st.markdown("""
     <style>
-        .input-container {background: linear-gradient(135deg,#fff9c4,#fff176);padding:10px;border-radius:5px;border:1px solid #fbc02d;height:100%;display:flex;flex-direction:column;justify-content:center;}
-        .output-container {background-color:#e0f7fa;padding:15px 10px;border-radius:5px;border:1px solid #00bcd4;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;margin-bottom:10px;}
-        .cell-label{font-size:0.8em;color:#555;margin-bottom:5px;text-transform:uppercase;font-weight:bold;}
+        .output-container{background-color:#e0f7fa;padding:15px 10px;border-radius:5px;border:1px solid #00bcd4;text-align:center;margin-bottom:10px;}
+        .cell-label{font-size:0.8em;color:#555;margin-bottom:5px;font-weight:bold;}
         .cell-value{font-size:1.2em;font-weight:bold;}
         .text-red{color:red;}.text-black{color:black;}
     </style>
     """, unsafe_allow_html=True)
 
-    # --- Funzioni helper ---
-    def styled_input(label, key, value=0.0):
-        val = st.number_input(label, value=float(value), key=key, format="%.2f")
-        return val
-
-    def styled_output(label, value, is_out=False):
-        if isinstance(value,float):
-            val_str = f"{value:.2f}"
-        else:
-            val_str = str(value)
-        text_class = "text-red" if (value<0 or is_out) else "text-black"
+    def styled_output(label,value,is_out=False):
+        if isinstance(value,float): val_str=f"{value:.2f}"
+        else: val_str=str(value)
+        text_class="text-red" if (value<0 or is_out) else "text-black"
         st.markdown(f'<div class="output-container"><div class="cell-label">{label}</div><div class="cell-value {text_class}">{val_str}</div></div>', unsafe_allow_html=True)
 
-    st.subheader("Calcolatore Variazione Percentuale Positiva")
+    # --- Input numero ---
+    def input_float(label,key,val=0.0):
+        return st.number_input(label,value=float(val),format="%.2f",key=key)
 
-    # --- Layout colonne riga 1 ---
-    c1, c2, c3, c4 = st.columns(4)
-    start_pos = c1.number_input("START", value=0.0, format="%.2f", key="start_pos")
-    end_pos = c2.number_input("END", value=0.0, format="%.2f", key="end_pos")
-    incr_display_pos = c3.empty()
-    var_display_pos = c4.empty()
+    # --- Layout colonne e placeholder ---
+    # Positivo
+    c1,c2,c3,c4=st.columns(4)
+    start_pos = input_float("START","start_pos")
+    end_pos = input_float("END","end_pos")
+    incr_display_pos=c3.empty()
+    var_display_pos=c4.empty()
 
-    # Riga 2
-    c5, c6, c7, c8 = st.columns(4)
-    qty_pos = c5.number_input("QTY", value=0.0, format="%.2f", key="qty_pos")
-    lqy_display_pos = c6.empty()
-    pl_display_pos = c7.empty()
-    hyp_pos = c8.number_input("HYP", value=0.0, format="%.2f", key="hyp_pos")
+    c5,c6,c7,c8=st.columns(4)
+    qty_pos=input_float("QTY","qty_pos")
+    lqy_display_pos=c6.empty()
+    pl_display_pos=c7.empty()
+    hyp_pos=input_float("HYP","hyp_pos")
 
-    # Riga 3
-    c9, c10, c11 = st.columns(3)
-    out_display_pos = c9.empty()
-    res_display_pos = c10.empty()
-    val_display_pos = c11.empty()
+    c9,c10,c11=st.columns(3)
+    out_display_pos=c9.empty()
+    res_display_pos=c10.empty()
+    val_display_pos=c11.empty()
 
-    # Riga 4: nuove colonne
-    c12, c13, c14, c15, c16 = st.columns(5)
-    out_f_input = c12.number_input("OUT/F", value=0.0, format="%.2f", key="out_f")
-    cst_display = c13.empty()
-    gr_inc_display = c14.empty()
-    gr_pl_display = c15.empty()
-    atx_input = c16.number_input("ATX%", value=0.0, format="%.2f", key="atx")
+    c12,c13,c14,c15,c16=st.columns(5)
+    out_f_input=input_float("OUT/F","out_f")
+    cst_display=c13.empty()
+    gr_inc_display=c14.empty()
+    gr_pl_display=c15.empty()
+    atx_input=input_float("ATX%","atx")
 
-    # Riga 5
-    c17, c18, c19, c20 = st.columns(4)
-    tx_display = c17.empty()
-    n_pl_display = c18.empty()
-    n_inc_display = c19.empty()
-    diff_display = c20.empty()
+    c17,c18,c19,c20=st.columns(4)
+    tx_display=c17.empty()
+    n_pl_display=c18.empty()
+    n_inc_display=c19.empty()
+    diff_display=c20.empty()
 
-    st.markdown("---")
-    calculate = st.button("CALCOLA/RESET")
+    # Negativo
+    n1,n2,n3,n4=st.columns(4)
+    start_neg=input_float("START","start_neg")
+    end_neg=input_float("END","end_neg")
+    incr_display_neg=n3.empty()
+    var_display_neg=n4.empty()
 
-    if calculate:
-        # --- Logica calcolo positivo ---
-        val_incr_pos = end_pos - start_pos
-        val_var_pos = (val_incr_pos/start_pos*100) if start_pos!=0 else 0.0
-        val_lqy_pos = start_pos*qty_pos
-        val_pl_pos = end_pos*qty_pos - val_lqy_pos
-        val_out_pos = val_lqy_pos/hyp_pos if hyp_pos!=0 else 0.0
-        val_res_pos = qty_pos - val_out_pos
-        val_val_pos = hyp_pos*val_out_pos
-        val_cst = start_pos*out_f_input
-        val_gr_inc = hyp_pos*out_f_input
-        val_gr_pl = val_gr_inc - val_cst
-        val_tx = val_gr_pl*atx_input/100
-        val_n_pl = val_gr_pl - val_tx
-        val_n_inc = val_gr_inc - val_tx
-        val_diff = val_n_inc - val_lqy_pos
-
-        # --- Output pos ---
-        incr_display_pos.metric("INCR", f"{val_incr_pos:.2f}")
-        var_display_pos.metric("VAR", f"{val_var_pos:.2f}")
-        lqy_display_pos.metric("LQY CMD", f"{val_lqy_pos:.2f}")
-        pl_display_pos.metric("P/L", f"{val_pl_pos:.2f}")
-        out_display_pos.metric("OUT", f"{val_out_pos:.2f}")
-        res_display_pos.metric("RES", f"{val_res_pos:.2f}")
-        val_display_pos.metric("VAL", f"{val_val_pos:.2f}")
-        cst_display.metric("CST", f"{val_cst:.2f}")
-        gr_inc_display.metric("GR/INC", f"{val_gr_inc:.2f}")
-        gr_pl_display.metric("GR/P/L", f"{val_gr_pl:.2f}")
-        tx_display.metric("TX", f"{val_tx:.2f}")
-        n_pl_display.metric("N/P/L", f"{val_n_pl:.2f}")
-        n_inc_display.metric("N/INC", f"{val_n_inc:.2f}")
-        diff_display.metric("DIFF", f"{val_diff:.2f}")
+    n5,n6,n7,n8=st.columns(4)
+    qty_neg=input_float("QTY","qty_neg")
+    lqy_display_neg=n6.empty()
+    npl_display_neg=n7.empty()
