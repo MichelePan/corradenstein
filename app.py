@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 # ================================
 # CONFIGURAZIONE PAGINA
 # ================================
-st.set_page_config(page_title="Dashboard SURVEILLANCE", layout="wide")
+st.set_page_config(page_title="CORRADENSTEIN", layout="wide")
 
 # ================================
 # TICKERS
@@ -100,16 +100,16 @@ def extract_close_column(df):
 # ================================
 # CREAZIONE TAB
 # ================================
-tab1, tab2 = st.tabs(["Calibra Surveillance", "Calcolatore"])
+tab1, tab2 = st.tabs(["Calibra", "Calcolatore"])
 
 # ================================
 # TAB 1 - SURVEILLANCE
 # ================================
 with tab1:
-    st.title("📈 SURVEILLANCE Portfolio – Stock Screener")
+    st.title("📈 Calibra – Stock Screener")
     
     with st.sidebar:
-        st.header("Parametri Tab1")
+        st.header("Parametri Calibra")
         historical_period = st.selectbox("Numero valori storici", [120,360,720])
         forecast_period = st.selectbox("Previsione futura (giorni)", [30,60,120])
         run_tab1 = st.button("Applica", key="tab1_run")
@@ -190,5 +190,5 @@ with tab1:
 # TAB 2 - CALCOLATORE
 # ================================
 with tab2:
-    st.title("Calcolatore Aumento e Decremento Percentuale")
+    st.title("Calcolatore Azionario")
     # [Il codice del calcolatore rimane invariato, copia quello già presente]
