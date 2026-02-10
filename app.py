@@ -69,17 +69,20 @@ TICKERS = {
 # ================================
 @st.cache_data(ttl=3600)
 def load_data(ticker):
+    """Scarica dati storici da Yahoo Finance."""
     df = yf.download(ticker, period="5y", interval="1d", progress=False)
     return df
 
 @st.cache_data(ttl=3600)
 def run_arima(series, steps):
+    """Esegue ARIMA sulla serie e ritorna forecast e conf_int."""
     model = ARIMA(series, order=(2,0,2)).fit()
     forecast = model.forecast(steps=steps)
     conf = model.get_forecast(steps=steps).conf_int()
     return forecast, conf
 
 def extract_close_column(df):
+    """Estrae la colonna Close dai dati scaricati."""
     if "Close" in df.columns:
         return df[["Close"]].copy()
     if df.shape[1]==1:
@@ -108,8 +111,12 @@ with tab1:
     
     if run_tab1:
         rows = []
+        num_tickers = len(TICKERS)
+        progress_bar = st.progress(0)
+        progress_text = st.empty()
+        
         with st.spinner("Calcolo in corso..."):
-            for name, ticker in TICKERS.items():
+            for i, (name, ticker) in enumerate(TICKERS.items(), start=1):
                 row = {"NAME":name,"TICKER":ticker,"ON MKT":np.nan,
                        "MIN":np.nan,"AVG":np.nan,"MAX":np.nan,
                        "FORECAST MIN":np.nan,"FORECAST VALUE":np.nan,"FORECAST MAX":np.nan,
@@ -121,7 +128,7 @@ with tab1:
                         rows.append(row)
                         continue
                     row["ON MKT"]=float(df_raw["Close"].iloc[-1])
-                    df_close=extract_close_column(df_raw).dropna().tail(historical_period)
+                    df_close = extract_close_column(df_raw).dropna().tail(historical_period)
                     if len(df_close)<20:
                         row["STATUS"]="INSUFFICIENT DATA"
                         rows.append(row)
@@ -137,6 +144,15 @@ with tab1:
                 except Exception:
                     row["STATUS"]="ARIMA ERROR"
                 rows.append(row)
+                
+                # aggiorna barra di progresso
+                progress = i / num_tickers
+                progress_bar.progress(progress)
+                progress_text.text(f"Elaborazione ticker {i}/{num_tickers}: {ticker}")
+        
+        progress_bar.empty()
+        progress_text.empty()
+        
         df = pd.DataFrame(rows).round(2)
         
         def color_rows(row):
