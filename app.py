@@ -181,10 +181,13 @@ with tab1:
 # ================================
 # TAB 2: CALCOLATORE VARIAZIONE
 # ================================
+# ================================
+# TAB 2: CALCOLATORE VARIAZIONE CON LAYOUT
+# ================================
 with tab2:
     st.title("🧮 Calcolatore Aumento/Decremento Percentuale")
 
-    # --- Funzioni helper
+    # --- CSS per styling ---
     st.markdown("""
     <style>
         .input-container {background: linear-gradient(135deg,#fff9c4,#fff176);padding:10px;border-radius:5px;border:1px solid #fbc02d;height:100%;display:flex;flex-direction:column;justify-content:center;}
@@ -195,6 +198,7 @@ with tab2:
     </style>
     """, unsafe_allow_html=True)
 
+    # --- Funzioni helper ---
     def styled_input(label, key, value=0.0):
         val = st.number_input(label, value=float(value), key=key, format="%.2f")
         return val
@@ -209,45 +213,73 @@ with tab2:
 
     st.subheader("Calcolatore Variazione Percentuale Positiva")
 
-    # INPUTS
-    start_pos = styled_input("START", "start_pos")
-    end_pos = styled_input("END", "end_pos")
-    qty_pos = styled_input("QTY", "qty_pos")
-    hyp_pos = styled_input("HYP", "hyp_pos")
-    out_f = styled_input("OUT/F", "out_f")
-    atx = styled_input("ATX%", "atx")
+    # --- Layout colonne riga 1 ---
+    c1, c2, c3, c4 = st.columns(4)
+    start_pos = c1.number_input("START", value=0.0, format="%.2f", key="start_pos")
+    end_pos = c2.number_input("END", value=0.0, format="%.2f", key="end_pos")
+    incr_display_pos = c3.empty()
+    var_display_pos = c4.empty()
 
+    # Riga 2
+    c5, c6, c7, c8 = st.columns(4)
+    qty_pos = c5.number_input("QTY", value=0.0, format="%.2f", key="qty_pos")
+    lqy_display_pos = c6.empty()
+    pl_display_pos = c7.empty()
+    hyp_pos = c8.number_input("HYP", value=0.0, format="%.2f", key="hyp_pos")
+
+    # Riga 3
+    c9, c10, c11 = st.columns(3)
+    out_display_pos = c9.empty()
+    res_display_pos = c10.empty()
+    val_display_pos = c11.empty()
+
+    # Riga 4: nuove colonne
+    c12, c13, c14, c15, c16 = st.columns(5)
+    out_f_input = c12.number_input("OUT/F", value=0.0, format="%.2f", key="out_f")
+    cst_display = c13.empty()
+    gr_inc_display = c14.empty()
+    gr_pl_display = c15.empty()
+    atx_input = c16.number_input("ATX%", value=0.0, format="%.2f", key="atx")
+
+    # Riga 5
+    c17, c18, c19, c20 = st.columns(4)
+    tx_display = c17.empty()
+    n_pl_display = c18.empty()
+    n_inc_display = c19.empty()
+    diff_display = c20.empty()
+
+    st.markdown("---")
     calculate = st.button("CALCOLA/RESET")
 
     if calculate:
-        # --- LOGICA POSITIVA ---
-        incr = end_pos - start_pos
-        var = (incr/start_pos*100) if start_pos!=0 else 0
-        lqy = start_pos*qty_pos
-        pl = end_pos*qty_pos - lqy
-        out = lqy/hyp_pos if hyp_pos!=0 else 0
-        res = qty_pos - out
-        val = hyp_pos*out
-        cst = start_pos*out_f
-        gr_inc = hyp_pos*out_f
-        gr_pl = gr_inc - cst
-        tx = gr_pl*atx/100
-        n_pl = gr_pl - tx
-        n_inc = gr_inc - tx
-        diff = n_inc - lqy
+        # --- Logica calcolo positivo ---
+        val_incr_pos = end_pos - start_pos
+        val_var_pos = (val_incr_pos/start_pos*100) if start_pos!=0 else 0.0
+        val_lqy_pos = start_pos*qty_pos
+        val_pl_pos = end_pos*qty_pos - val_lqy_pos
+        val_out_pos = val_lqy_pos/hyp_pos if hyp_pos!=0 else 0.0
+        val_res_pos = qty_pos - val_out_pos
+        val_val_pos = hyp_pos*val_out_pos
+        val_cst = start_pos*out_f_input
+        val_gr_inc = hyp_pos*out_f_input
+        val_gr_pl = val_gr_inc - val_cst
+        val_tx = val_gr_pl*atx_input/100
+        val_n_pl = val_gr_pl - val_tx
+        val_n_inc = val_gr_inc - val_tx
+        val_diff = val_n_inc - val_lqy_pos
 
-        # OUTPUT
-        styled_output("INCR", incr)
-        styled_output("VAR", var)
-        styled_output("LQY CMD", lqy)
-        styled_output("P/L", pl)
-        styled_output("OUT", out, is_out=True)
-        styled_output("RES", res)
-        styled_output("VAL", val)
-        styled_output("CST", cst)
-        styled_output("GR/INC", gr_inc)
-        styled_output("GR/P/L", gr_pl)
-        styled_output("TX", tx)
-        styled_output("N/P/L", n_pl)
-        styled_output("N/INC", n_inc)
-        styled_output("DIFF", diff)
+        # --- Output pos ---
+        incr_display_pos.metric("INCR", f"{val_incr_pos:.2f}")
+        var_display_pos.metric("VAR", f"{val_var_pos:.2f}")
+        lqy_display_pos.metric("LQY CMD", f"{val_lqy_pos:.2f}")
+        pl_display_pos.metric("P/L", f"{val_pl_pos:.2f}")
+        out_display_pos.metric("OUT", f"{val_out_pos:.2f}")
+        res_display_pos.metric("RES", f"{val_res_pos:.2f}")
+        val_display_pos.metric("VAL", f"{val_val_pos:.2f}")
+        cst_display.metric("CST", f"{val_cst:.2f}")
+        gr_inc_display.metric("GR/INC", f"{val_gr_inc:.2f}")
+        gr_pl_display.metric("GR/P/L", f"{val_gr_pl:.2f}")
+        tx_display.metric("TX", f"{val_tx:.2f}")
+        n_pl_display.metric("N/P/L", f"{val_n_pl:.2f}")
+        n_inc_display.metric("N/INC", f"{val_n_inc:.2f}")
+        diff_display.metric("DIFF", f"{val_diff:.2f}")
