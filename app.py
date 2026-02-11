@@ -279,9 +279,9 @@ with tab2:
         reset = st.button("RESET", use_container_width=True)
     
     if reset:
-    for key in st.session_state.keys():
-        st.session_state[key] = 0
-    st.rerun()
+        for key in st.session_state.keys():
+            st.session_state[key] = 0
+        st.rerun()
 
     # LOGICA CALCOLI
     if calculate:
