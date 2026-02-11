@@ -181,7 +181,20 @@ with tab1:
         header_height=40
         table_height=header_height+row_height*len(df)
         
-        st.dataframe(df.style.apply(color_rows, axis=1), use_container_width=True, height=table_height)
+        # Funzione per applicare il grassetto su ON MKT
+        def highlight_on_mkt(val, col_name):
+            if col_name == "ON MKT" and not pd.isna(val):
+                return "font-weight: bold"
+            return ""
+        
+        # Styler con float a 2 decimali e ON MKT in grassetto
+        styled_df = df.style \
+            .apply(lambda row: [highlight_on_mkt(val, col) for col, val in row.items()], axis=1) \
+            .format("{:.2f}", subset=df.select_dtypes(include=np.number).columns) \
+            .apply(color_rows, axis=1)  # mantiene colori condizionali
+        
+        st.dataframe(styled_df, use_container_width=True, height=table_height)
+
 
 # ================================
 # TAB 2 - CALCOLATORE
@@ -316,10 +329,10 @@ with tab2:
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
-        calculate = st.button("📈 CALCOLA", type="primary", use_container_width=True)
+        calculate = st.button("CALCOLA", type="primary", use_container_width=True)
     
     with col_btn2:
-        reset = st.button("🗑 RESET", use_container_width=True)
+        reset = st.button("RESET", use_container_width=True)
 
     if reset:
         for key in list(st.session_state.keys()):
