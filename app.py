@@ -180,17 +180,22 @@ with tab1:
         row_height=35
         header_height=40
         table_height=header_height+row_height*len(df)
+
+        # Rimuovi colonna STATUS
+        df_display = df.drop(columns=["STATUS"], errors="ignore")
         
-        # Funzione per applicare il grassetto su ON MKT
+        # Rimuovi indice
+        df_display = df_display.reset_index(drop=True)
+        
+        # Styler con formattazione e grassetto ON MKT
         def highlight_on_mkt(val, col_name):
             if col_name == "ON MKT" and not pd.isna(val):
                 return "font-weight: bold"
             return ""
         
-        # Styler con float a 2 decimali e ON MKT in grassetto
-        styled_df = df.style \
+        styled_df = df_display.style \
             .apply(lambda row: [highlight_on_mkt(val, col) for col, val in row.items()], axis=1) \
-            .format("{:.2f}", subset=df.select_dtypes(include=np.number).columns) \
+            .format("{:.2f}", subset=df_display.select_dtypes(include=np.number).columns) \
             .apply(color_rows, axis=1)  # mantiene colori condizionali
         
         st.dataframe(styled_df, use_container_width=True, height=table_height)
