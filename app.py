@@ -275,37 +275,51 @@ with tab2:
     
     st.markdown("""
         <style>
-        /* RESET button */
-        div.stButton > button[kind="secondary"] {
-            background-color: #ff4b4b;
-            color: white;
-            border: none;
+        
+        /* ===== BASE BUTTON STYLE ===== */
+        div.stButton > button {
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+            transition: all 0.2s ease-in-out !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
         }
-        div.stButton > button[kind="secondary"]:hover {
-            background-color: #b71c1c;
-            color: white;
-        }
-        /* FORZA CALCOLA VERDE */
+        
+        /* ===== CALCOLA (PRIMARY) ===== */
         button[kind="primary"] {
-            background-color: #16a34a !important;
+            background: linear-gradient(135deg, #16a34a, #22c55e) !important;
             color: white !important;
             border: none !important;
         }
         
         button[kind="primary"]:hover {
-            background-color: #15803d !important;
-            color: white !important;
+            background: linear-gradient(135deg, #15803d, #16a34a) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.15) !important;
         }
+        
+        /* ===== RESET (SECONDARY) ===== */
+        div.stButton:nth-of-type(2) > button {
+            background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        div.stButton:nth-of-type(2) > button:hover {
+            background: linear-gradient(135deg, #b91c1c, #dc2626) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.15) !important;
+        }
+        
         </style>
         """, unsafe_allow_html=True)
-    
+
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
-        calculate = st.button("CALCOLA", type="primary", use_container_width=True)
+        calculate = st.button("📈 CALCOLA", type="primary", use_container_width=True)
     
     with col_btn2:
-        reset = st.button("RESET", type="secondary", use_container_width=True, )
+        reset = st.button("🗑 RESET", use_container_width=True)
 
     if reset:
         for key in list(st.session_state.keys()):
