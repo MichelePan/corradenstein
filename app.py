@@ -184,8 +184,6 @@ with tab1:
         # ================================
         # PREPARAZIONE DATAFRAME
         # ================================
-        
-        # Rimuove STATUS e resetta indice
         df_display = df.drop(columns=["STATUS"], errors="ignore").copy()
         df_display.reset_index(drop=True, inplace=True)
         
@@ -203,32 +201,21 @@ with tab1:
             return ""
         
         # ================================
-        # COSTRUZIONE HTML CON STILE
+        # COSTRUZIONE HTML
         # ================================
-        
-        html_table = """
+        html_table = '''
         <div style="max-height:500px; overflow-y:auto; border:1px solid #ccc;">
         <style>
-          table {border-collapse: collapse; width: 100%;}
-
-          thead th {
-              position: sticky; 
-              top: 0; 
-              background-color: #f0f0f0; 
-              z-index:1; 
-              font-weight: normal;
-              text-align: center;
-          }
-          
-          td:first-child {text-align: left;}
-          
-          td:not(:first-child) {text-align: right;}
-          
-          tbody tr:hover {background-color: #e0f7fa;}
+        table {border-collapse: collapse; width: 100%;}
+        thead th {position: sticky; top: 0; background-color: #f0f0f0; z-index:1; font-weight: normal; text-align: center;}
+        tbody tr:hover {background-color: #e0f7fa;}
+        td:first-child {text-align: left;}
+        td:not(:first-child) {text-align: right;}
+        th, td {border: 1px solid #ccc; padding: 5px;}
         </style>
         <table>
         <thead><tr>
-        """
+        '''
         
         # header
         for col in df_display.columns:
@@ -243,7 +230,6 @@ with tab1:
                 if isinstance(val, (float, np.floating)):
                     val = f"{val:.2f}"
                 style = get_cell_style(row, col)
-                # aggiungi text-align inline solo per la prima colonna NAME, gli altri numeri vengono gestiti dal CSS
                 if i == 0:
                     style += " text-align: left;"
                 html_table += f'<td style="{style}">{val}</td>'
@@ -255,7 +241,6 @@ with tab1:
         # DISPLAY HTML
         # ================================
         st.markdown(html_table, unsafe_allow_html=True)
-
 
 
 # ================================
