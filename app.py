@@ -269,14 +269,32 @@ with tab2:
     with n6: lqy_display_neg = st.empty()
     with n7: npl_display_neg = st.empty()
 
-    # Pulsante CALCOLA
+    # ========================
+    # BOTTONI
+    # ========================
+    
+    st.markdown("""
+    <style>
+    div.stButton > button[kind="secondary"] {
+        background-color: #d32f2f;
+        color: white;
+        border: none;
+    }
+    div.stButton > button[kind="secondary"]:hover {
+        background-color: #b71c1c;
+        color: white;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     col_btn1, col_btn2 = st.columns(2)
     
     with col_btn1:
         calculate = st.button("CALCOLA", type="primary", use_container_width=True)
     
     with col_btn2:
-        reset = st.button("RESET", use_container_width=True)
+        reset = st.button("RESET", type="secondary", use_container_width=True)
+        col_btn1, col_btn2 = st.columns(2)
     
     if reset:
         for key in st.session_state.keys():
