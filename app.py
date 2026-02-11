@@ -275,14 +275,24 @@ with tab2:
     
     st.markdown("""
         <style>
+        /* RESET button */
         div.stButton > button[kind="secondary"] {
-            background-color: #d32f2f;
+            background-color: #ff4b4b;
             color: white;
             border: none;
         }
         div.stButton > button[kind="secondary"]:hover {
             background-color: #b71c1c;
             color: white;
+        }
+        /* CALCOLA button */
+        div[data-testid="stButton"] button[kind="primary"] {
+            background-color: #2e7d32 !important;
+            color: white !important;
+            border: none !important;
+        }
+        div[data-testid="stButton"] button[kind="primary"]:hover {
+            background-color: #1b5e20 !important;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -293,7 +303,7 @@ with tab2:
         calculate = st.button("CALCOLA", type="primary", use_container_width=True)
     
     with col_btn2:
-        reset = st.button("RESET", type="secondary", use_container_width=True)
+        reset = st.button("RESET", type="secondary", use_container_width=True, )
 
 
     if reset:
