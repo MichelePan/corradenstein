@@ -206,7 +206,7 @@ with tab1:
         # COSTRUZIONE HTML CON STILE
         # ================================
         
-        html_table = '''
+        html_table = """
         <div style="max-height:500px; overflow-y:auto; border:1px solid #ccc;">
         <style>
           table {border-collapse: collapse; width: 100%;}
@@ -228,7 +228,7 @@ with tab1:
         </style>
         <table>
         <thead><tr>
-        '''
+        """
         
         # header
         for col in df_display.columns:
