@@ -270,8 +270,18 @@ with tab2:
     with n7: npl_display_neg = st.empty()
 
     # Pulsante CALCOLA
-    col_btn = st.columns([1,2,1])[1]
-    calculate = col_btn.button("CALCOLA/RESET", type="primary", use_container_width=True)
+    col_btn1, col_btn2 = st.columns(2)
+    
+    with col_btn1:
+        calculate = st.button("CALCOLA", type="primary", use_container_width=True)
+    
+    with col_btn2:
+        reset = st.button("RESET", use_container_width=True)
+    
+    if reset:
+    for key in st.session_state.keys():
+        st.session_state[key] = 0
+    st.rerun()
 
     # LOGICA CALCOLI
     if calculate:
