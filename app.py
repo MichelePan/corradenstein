@@ -210,8 +210,7 @@ with tab1:
         <div style="max-height:500px; overflow-y:auto; border:1px solid #ccc;">
         <style>
           table {border-collapse: collapse; width: 100%;}
-          
-          /* header sticky e non grassetto */
+
           thead th {
               position: sticky; 
               top: 0; 
@@ -221,13 +220,10 @@ with tab1:
               text-align: center;
           }
           
-          /* prima colonna (NAME) a sinistra */
           td:first-child {text-align: left;}
           
-          /* celle numeriche a destra */
           td:not(:first-child) {text-align: right;}
           
-          /* hover righe */
           tbody tr:hover {background-color: #e0f7fa;}
         </style>
         <table>
