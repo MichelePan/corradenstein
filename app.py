@@ -185,36 +185,81 @@ with tab1:
         # PREPARAZIONE DATAFRAME
         # ================================
         
-        # Rimuove colonna STATUS
+        # Rimuove STATUS e resetta indice
         df_display = df.drop(columns=["STATUS"], errors="ignore").copy()
+        df_display.reset_index(drop=True, inplace=True)
         
-        # Creiamo un DataFrame senza indice visibile
-        df_display_no_index = pd.DataFrame(df_display.values, columns=df_display.columns)
-        
-        # Funzione per grassetto ON MKT
-        def highlight_on_mkt(val, col_name):
-            if col_name == "ON MKT" and not pd.isna(val):
-                return "font-weight: bold"
+        # Funzione per colorare le celle come prima
+        def get_cell_style(row, col):
+            # colore FORECAST VALUE
+            if col == "FORECAST VALUE" and not pd.isna(row[col]):
+                return "color:blue;font-weight:bold;" if row[col] > row["ON MKT"] else "color:red;font-weight:bold;"
+            # colore Δ % FORECAST
+            if col == "Δ % FORECAST" and not pd.isna(row[col]):
+                if row[col] > 20:
+                    return "color:green;font-weight:bold;"
+                elif row[col] < 0:
+                    return "color:magenta;font-weight:bold;"
+            # colore ON MKT in grassetto
+            if col == "ON MKT" and not pd.isna(row[col]):
+                return "font-weight:bold;"
             return ""
         
-        # Styler completo
-        styled_df = df_display_no_index.style \
-            .apply(lambda row: [highlight_on_mkt(val, col) for col, val in row.items()], axis=1) \
-            .format("{:.2f}", subset=df_display_no_index.select_dtypes(include=np.number).columns) \
-            .apply(color_rows, axis=1)
+        # ================================
+        # COSTRUZIONE HTML CON HOVER E STILE HEADER
+        # ================================
+        
+        html_table = '''
+        <div style="max-height:500px; overflow-y:auto; border:1px solid #ccc;">
+        <style>
+          table {border-collapse: collapse; width: 100%;}
+          th, td {border: 1px solid #ccc; padding: 5px; text-align: center;}
+          
+          /* header sticky e non grassetto */
+          thead th {
+              position: sticky; 
+              top: 0; 
+              background-color: #f0f0f0; 
+              z-index:1; 
+              font-weight: normal;
+          }
+          
+          /* NAME allineato a sinistra */
+          td:first-child {text-align: left;}
+          
+          /* hover righe */
+          tbody tr:hover {background-color: #e0f7fa;}
+        </style>
+        <table>
+        <thead><tr>
+        '''
+        
+        # header
+        for col in df_display.columns:
+            html_table += f'<th>{col}</th>'
+        html_table += '</tr></thead><tbody>'
+        
+        # corpo tabella
+        for _, row in df_display.iterrows():
+            html_table += '<tr>'
+            for i, col in enumerate(df_display.columns):
+                val = row[col]
+                if isinstance(val, (float, np.floating)):
+                    val = f"{val:.2f}"
+                style = get_cell_style(row, col)
+                # se è la prima colonna NAME aggiungiamo text-align:left inline (opzionale)
+                if i == 0:
+                    style += " text-align: left;"
+                html_table += f'<td style="{style}">{val}</td>'
+            html_table += '</tr>'
+        
+        html_table += '</tbody></table></div>'
         
         # ================================
-        # DISPLAY TABELLARE
+        # DISPLAY HTML
         # ================================
-        row_height = 35
-        header_height = 40
-        table_height = header_height + row_height * len(df_display_no_index)
-        
-        st.dataframe(
-            styled_df,
-            use_container_width=True,
-            height=table_height  # scroll verticale con header fisso
-        )
+        st.markdown(html_table, unsafe_allow_html=True)
+
 
 # ================================
 # TAB 2 - CALCOLATORE
