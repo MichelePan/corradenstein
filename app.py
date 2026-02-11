@@ -95,7 +95,7 @@ def extract_close_column(df):
 # ================================
 # CREAZIONE TAB
 # ================================
-tab1, tab2 = st.tabs(["Calibra Surveillance", "Calcolatore"])
+tab1, tab2 = st.tabs(["Calibra", "Calcolatore"])
 
 # ================================
 # TAB 1 - SURVEILLANCE
@@ -187,7 +187,7 @@ with tab1:
 # TAB 2 - CALCOLATORE
 # ================================
 with tab2:
-    st.title("Calcolatore Aumento e Decremento Percentuale")
+    st.title("Calcolatore Azionario")
 
     # --- Funzioni di styling ---
     st.markdown("""
@@ -208,6 +208,13 @@ with tab2:
             st.markdown('</div>', unsafe_allow_html=True)
         return val
 
+    def styled_input_int(label, key, value=0):
+        with st.container():
+            st.markdown(f'<div class="input-container"><div class="cell-label">{label}</div>', unsafe_allow_html=True)
+            val = st.number_input("", value=int(value), key=key, label_visibility="collapsed", step=1)
+            st.markdown('</div>', unsafe_allow_html=True)
+        return val
+
     def styled_output(label, value, is_out=False):
         val_str = f"{value:.2f}" if isinstance(value,float) else str(value)
         text_class = "text-red" if (is_out or (isinstance(value,float) and value < 0)) else "text-black"
@@ -222,9 +229,9 @@ with tab2:
     with c2: end_pos = styled_input("END", "end_pos")
     with c3: incr_display_pos = st.empty()
     with c4: var_display_pos = st.empty()
-
+    
     c5, c6, c7, c8 = st.columns(4)
-    with c5: qty_pos = styled_input("QTY", "qty_pos", 0)
+    with c5: qty_pos = styled_input_int("QTY", "qty_pos", 0)
     with c6: lqy_display_pos = st.empty()
     with c7: pl_display_pos = st.empty()
     with c8: hyp_pos = styled_input("HYP", "hyp_pos", 0)
