@@ -234,7 +234,7 @@ with tab2:
     with c5: qty_pos = styled_input_int("QTY", "qty_pos", 0)
     with c6: lqy_display_pos = st.empty()
     with c7: pl_display_pos = st.empty()
-    with c8: hyp_pos = styled_input("HYP", "hyp_pos", 0.0)
+    with c8: hyp_pos = styled_input("HYP", "hyp_pos")
 
     c9, c10, c11 = st.columns(3)
     with c9: out_display_pos = st.empty()
@@ -265,7 +265,7 @@ with tab2:
     with n4: var_display_neg = st.empty()
 
     n5, n6, n7, n8 = st.columns(4)
-    with n5: qty_neg = styled_input("QTY", "qty_neg", 0)
+    with n5: qty_neg = styled_input_int("QTY", "qty_neg", 0)
     with n6: lqy_display_neg = st.empty()
     with n7: npl_display_neg = st.empty()
 
