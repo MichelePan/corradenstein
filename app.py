@@ -268,20 +268,19 @@ with tab2:
     with n5: qty_neg = styled_input_int("QTY", "qty_neg", 0)
     with n6: lqy_display_neg = st.empty()
     with n7: npl_display_neg = st.empty()
-
+    
     # ========================
     # BOTTONI
     # ========================
     
     st.markdown("""
         <style>
-        /* RESET button (second button) */
-        div.stButton:nth-of-type(2) > button {
+        div.stButton > button[kind="secondary"] {
             background-color: #d32f2f;
             color: white;
             border: none;
         }
-        div.stButton:nth-of-type(2) > button:hover {
+        div.stButton > button[kind="secondary"]:hover {
             background-color: #b71c1c;
             color: white;
         }
@@ -294,7 +293,8 @@ with tab2:
         calculate = st.button("CALCOLA", type="primary", use_container_width=True)
     
     with col_btn2:
-        reset = st.button("RESET", use_container_width=True)
+        reset = st.button("RESET", type="secondary", use_container_width=True)
+
 
     if reset:
         for key in list(st.session_state.keys()):
