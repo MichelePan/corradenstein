@@ -285,14 +285,16 @@ with tab2:
             background-color: #b71c1c;
             color: white;
         }
-        /* CALCOLA button */
-        div[data-testid="stButton"] button[kind="primary"] {
-            background-color: #2e7d32 !important;
+        /* FORZA CALCOLA VERDE */
+        button[kind="primary"] {
+            background-color: #16a34a !important;
             color: white !important;
             border: none !important;
         }
-        div[data-testid="stButton"] button[kind="primary"]:hover {
-            background-color: #1b5e20 !important;
+        
+        button[kind="primary"]:hover {
+            background-color: #15803d !important;
+            color: white !important;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -304,7 +306,6 @@ with tab2:
     
     with col_btn2:
         reset = st.button("RESET", type="secondary", use_container_width=True, )
-
 
     if reset:
         for key in list(st.session_state.keys()):
