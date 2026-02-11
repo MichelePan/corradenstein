@@ -185,9 +185,11 @@ with tab1:
         # PREPARAZIONE DATAFRAME
         # ================================
         
-        # Rimuove colonna STATUS e resetta indice
+        # Rimuove colonna STATUS
         df_display = df.drop(columns=["STATUS"], errors="ignore").copy()
-        df_display.reset_index(drop=True, inplace=True)  # rimuove indice
+        
+        # Creiamo un DataFrame senza indice visibile
+        df_display_no_index = pd.DataFrame(df_display.values, columns=df_display.columns)
         
         # Funzione per grassetto ON MKT
         def highlight_on_mkt(val, col_name):
@@ -196,26 +198,23 @@ with tab1:
             return ""
         
         # Styler completo
-        styled_df = df_display.style \
+        styled_df = df_display_no_index.style \
             .apply(lambda row: [highlight_on_mkt(val, col) for col, val in row.items()], axis=1) \
-            .format("{:.2f}", subset=df_display.select_dtypes(include=np.number).columns) \
-            .apply(color_rows, axis=1) \
-            .hide(axis="index")  # nasconde l'ID/indice
+            .format("{:.2f}", subset=df_display_no_index.select_dtypes(include=np.number).columns) \
+            .apply(color_rows, axis=1)
         
         # ================================
         # DISPLAY TABELLARE
         # ================================
         row_height = 35
         header_height = 40
-        table_height = header_height + row_height * len(df_display)
+        table_height = header_height + row_height * len(df_display_no_index)
         
         st.dataframe(
             styled_df,
             use_container_width=True,
-            height=table_height  # permette scroll verticale con header fisso
+            height=table_height  # scroll verticale con header fisso
         )
-
-
 
 # ================================
 # TAB 2 - CALCOLATORE
