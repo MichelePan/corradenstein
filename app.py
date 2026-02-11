@@ -275,15 +275,15 @@ with tab2:
     
     st.markdown("""
         <style>
-        /* RESET button custom */
-        div[data-testid="stButton"][data-reset="true"] button {
-            background-color: #d32f2f !important;
-            color: white !important;
-            border: none !important;
+        /* RESET button (second button) */
+        div.stButton:nth-of-type(2) > button {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
         }
-        div[data-testid="stButton"][data-reset="true"] button:hover {
-            background-color: #b71c1c !important;
-            color: white !important;
+        div.stButton:nth-of-type(2) > button:hover {
+            background-color: #b71c1c;
+            color: white;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -294,10 +294,7 @@ with tab2:
         calculate = st.button("CALCOLA", type="primary", use_container_width=True)
     
     with col_btn2:
-        # wrapper HTML per aggiungere attributo custom
-        st.markdown('<div data-reset="true">', unsafe_allow_html=True)
         reset = st.button("RESET", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
     if reset:
         for key in list(st.session_state.keys()):
