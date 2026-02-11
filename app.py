@@ -189,31 +189,27 @@ with tab1:
         df_display = df.drop(columns=["STATUS"], errors="ignore").copy()
         df_display.reset_index(drop=True, inplace=True)
         
-        # Funzione per colorare le celle come prima
+        # Funzione per colorare le celle
         def get_cell_style(row, col):
-            # colore FORECAST VALUE
             if col == "FORECAST VALUE" and not pd.isna(row[col]):
                 return "color:blue;font-weight:bold;" if row[col] > row["ON MKT"] else "color:red;font-weight:bold;"
-            # colore Δ % FORECAST
             if col == "Δ % FORECAST" and not pd.isna(row[col]):
                 if row[col] > 20:
                     return "color:green;font-weight:bold;"
                 elif row[col] < 0:
                     return "color:magenta;font-weight:bold;"
-            # colore ON MKT in grassetto
             if col == "ON MKT" and not pd.isna(row[col]):
                 return "font-weight:bold;"
             return ""
         
         # ================================
-        # COSTRUZIONE HTML CON HOVER E STILE HEADER
+        # COSTRUZIONE HTML CON STILE
         # ================================
         
         html_table = '''
         <div style="max-height:500px; overflow-y:auto; border:1px solid #ccc;">
         <style>
           table {border-collapse: collapse; width: 100%;}
-          th, td {border: 1px solid #ccc; padding: 5px; text-align: center;}
           
           /* header sticky e non grassetto */
           thead th {
@@ -222,10 +218,14 @@ with tab1:
               background-color: #f0f0f0; 
               z-index:1; 
               font-weight: normal;
+              text-align: center;
           }
           
-          /* NAME allineato a sinistra */
+          /* prima colonna (NAME) a sinistra */
           td:first-child {text-align: left;}
+          
+          /* celle numeriche a destra */
+          td:not(:first-child) {text-align: right;}
           
           /* hover righe */
           tbody tr:hover {background-color: #e0f7fa;}
@@ -247,7 +247,7 @@ with tab1:
                 if isinstance(val, (float, np.floating)):
                     val = f"{val:.2f}"
                 style = get_cell_style(row, col)
-                # se è la prima colonna NAME aggiungiamo text-align:left inline (opzionale)
+                # aggiungi text-align inline solo per la prima colonna NAME, gli altri numeri vengono gestiti dal CSS
                 if i == 0:
                     style += " text-align: left;"
                 html_table += f'<td style="{style}">{val}</td>'
@@ -259,6 +259,7 @@ with tab1:
         # DISPLAY HTML
         # ================================
         st.markdown(html_table, unsafe_allow_html=True)
+
 
 
 # ================================
