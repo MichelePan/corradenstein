@@ -181,24 +181,39 @@ with tab1:
         header_height=40
         table_height=header_height+row_height*len(df)
 
-        # Rimuovi colonna STATUS
-        df_display = df.drop(columns=["STATUS"], errors="ignore")
+        # ================================
+        # PREPARAZIONE DATAFRAME
+        # ================================
         
-        # Rimuovi indice
-        df_display = df_display.reset_index(drop=True)
+        # Rimuove colonna STATUS e resetta indice
+        df_display = df.drop(columns=["STATUS"], errors="ignore").copy()
+        df_display.index = pd.RangeIndex(len(df_display))  # indice pulito
         
-        # Styler con formattazione e grassetto ON MKT
+        # Funzione per grassetto ON MKT
         def highlight_on_mkt(val, col_name):
             if col_name == "ON MKT" and not pd.isna(val):
                 return "font-weight: bold"
             return ""
         
+        # Styler completo
         styled_df = df_display.style \
             .apply(lambda row: [highlight_on_mkt(val, col) for col, val in row.items()], axis=1) \
             .format("{:.2f}", subset=df_display.select_dtypes(include=np.number).columns) \
-            .apply(color_rows, axis=1)  # mantiene colori condizionali
+            .apply(color_rows, axis=1) \
+            .hide(axis="index")  # rimuove completamente l'ID/indice
         
-        st.dataframe(styled_df, use_container_width=True, height=table_height)
+        # ================================
+        # DISPLAY TABELLARE
+        # ================================
+        row_height = 35
+        header_height = 40
+        table_height = header_height + row_height * len(df_display)
+        
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            height=table_height
+        )
 
 
 # ================================
