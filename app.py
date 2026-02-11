@@ -206,12 +206,12 @@ with tab1:
         html_table = '''
         <div style="max-height:500px; overflow-y:auto; border:1px solid #ccc;">
         <style>
-        table {border-collapse: collapse; width: 100%;}
-        thead th {position: sticky; top: 0; background-color: #f0f0f0; z-index:1; font-weight: normal; text-align: center;}
+        table {border-collapse: collapse; width: 100%; font-family: inherit;}
+        thead th {position: sticky; top: 0; background-color: #f0f0f0; z-index:1; font-weight: normal; text-align: center; font-family: inherit;}
         tbody tr:hover {background-color: #e0f7fa;}
         td:first-child {text-align: left;}
         td:not(:first-child) {text-align: right;}
-        th, td {border: 1px solid #ccc; padding: 5px;}
+        th, td {border: 1px solid #ccc; padding: 5px; font-family: inherit;}
         </style>
         <table>
         <thead><tr>
