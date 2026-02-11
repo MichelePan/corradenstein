@@ -234,7 +234,7 @@ with tab2:
     with c5: qty_pos = styled_input_int("QTY", "qty_pos", 0)
     with c6: lqy_display_pos = st.empty()
     with c7: pl_display_pos = st.empty()
-    with c8: hyp_pos = styled_input("HYP", "hyp_pos", 0)
+    with c8: hyp_pos = styled_input("HYP", "hyp_pos", 0.0)
 
     c9, c10, c11 = st.columns(3)
     with c9: out_display_pos = st.empty()
