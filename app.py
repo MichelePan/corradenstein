@@ -76,7 +76,7 @@ def load_data_multiple(tickers):
 @st.cache_data(ttl=3600)
 def run_arima(series, steps):
     model = ARIMA(series, order=(2,0,2))
-    fitted = model.fit(method='statespace', disp=0, maxiter=50)
+    fitted = model.fit()
     forecast_res = fitted.get_forecast(steps=steps)
     forecast = forecast_res.predicted_mean
     conf = forecast_res.conf_int()
