@@ -75,10 +75,11 @@ def load_data_multiple(tickers):
 
 @st.cache_data(ttl=3600)
 def run_arima(series, steps):
-    """Esegue ARIMA sulla serie e ritorna forecast e conf_int."""
-    model = ARIMA(series, order=(2,0,2)).fit()
-    forecast = model.forecast(steps=steps)
-    conf = model.get_forecast(steps=steps).conf_int()
+    model = ARIMA(series, order=(2,0,2))
+    fitted = model.fit(method='statespace', disp=0, maxiter=50)
+    forecast_res = fitted.get_forecast(steps=steps)
+    forecast = forecast_res.predicted_mean
+    conf = forecast_res.conf_int()
     return forecast, conf
 
 def extract_close_column(df):
@@ -100,148 +101,114 @@ tab1, tab2 = st.tabs(["Calibra", "Calcolatore"])
 # ================================
 # TAB 1 - SURVEILLANCE
 # ================================
+# ================================
+# TAB 1 - SURVEILLANCE (ARIMA 2,0,2 OPTIMIZED)
+# ================================
 with tab1:
     st.title("📈 SURVEILLANCE Portfolio – Stock Screener")
-    
+
     with st.sidebar:
         st.header("Parametri CALIBRA")
-        historical_period = st.selectbox("Numero valori storici", [120,360,720])
-        forecast_period = st.selectbox("Previsione futura (giorni)", [30,60,120])
+        historical_period = st.selectbox("Numero valori storici", [120, 360, 720])
+        forecast_period = st.selectbox("Previsione futura (giorni)", [30, 60, 120])
+        min_filter = st.slider("Filtro Δ % minimo", -50, 100, -50)
         run_tab1 = st.button("Applica", key="tab1_run")
-    
+
     if run_tab1:
+
         rows = []
         num_tickers = len(TICKERS)
-        
-        # scarica tutti i dati insieme
+
         all_data = load_data_multiple(list(TICKERS.values()))
-        
+
         progress_bar = st.progress(0)
-        progress_text = st.empty()
-        
-        with st.spinner("Calcolo in corso..."):
-            for i, (name, ticker) in enumerate(TICKERS.items(), start=1):
-                row = {"NAME":name,"TICKER":ticker,"ON MKT":np.nan,
-                       "MIN":np.nan,"AVG":np.nan,"MAX":np.nan,
-                       "FORECAST MIN":np.nan,"FORECAST VALUE":np.nan,"FORECAST MAX":np.nan,
-                       "Δ % FORECAST":np.nan,"STATUS":"OK"}
-                try:
-                    # prendi i dati dal DataFrame multi-ticker
-                    if ticker not in all_data:
-                        row["STATUS"] = "NO DATA"
-                        rows.append(row)
-                        continue
-                    df_raw = all_data[ticker].copy()
-                    if df_raw.empty or "Close" not in df_raw.columns:
-                        row["STATUS"]="NO DATA"
-                        rows.append(row)
-                        continue
-                    row["ON MKT"]=float(df_raw["Close"].iloc[-1])
-                    df_close = extract_close_column(df_raw).dropna().tail(historical_period)
-                    if len(df_close)<20:
-                        row["STATUS"]="INSUFFICIENT DATA"
-                        rows.append(row)
-                        continue
-                    forecast, conf = run_arima(df_close["Close"], forecast_period)
-                    row["MIN"]=float(df_close["Close"].min().round(2))
-                    row["AVG"]=float(df_close["Close"].mean().round(2))
-                    row["MAX"]=float(df_close["Close"].max().round(2))
-                    row["FORECAST MIN"]=float(conf.iloc[-1,0].round(2))
-                    row["FORECAST VALUE"]=float(forecast.iloc[-1].round(2))
-                    row["FORECAST MAX"]=float(conf.iloc[-1,1].round(2))
-                    row["Δ % FORECAST"]=float((row["FORECAST VALUE"]-row["ON MKT"])/row["ON MKT"]*100)
-                except Exception:
-                    row["STATUS"]="ARIMA ERROR"
-                rows.append(row)
-                
-                # aggiorna barra di progresso
-                progress = i / num_tickers
-                progress_bar.progress(progress)
-                progress_text.text(f"Elaborazione ticker {i}/{num_tickers}: {ticker}")
-        
+
+        for i, (name, ticker) in enumerate(TICKERS.items(), start=1):
+
+            row = {
+                "NAME": name,
+                "TICKER": ticker,
+                "ON MKT": np.nan,
+                "MIN": np.nan,
+                "AVG": np.nan,
+                "MAX": np.nan,
+                "FORECAST VALUE": np.nan,
+                "Δ % FORECAST": np.nan,
+                "STATUS": "OK"
+            }
+
+            try:
+                if ticker not in all_data.columns.get_level_values(0):
+                    row["STATUS"] = "NO DATA"
+                    rows.append(row)
+                    continue
+
+                df_close = (
+                    all_data[ticker][["Close"]]
+                    .dropna()
+                    .tail(historical_period)
+                )
+
+                if len(df_close) < 40:
+                    row["STATUS"] = "INSUFFICIENT DATA"
+                    rows.append(row)
+                    continue
+
+                current_price = float(df_close["Close"].iloc[-1])
+
+                row["ON MKT"] = current_price
+                row["MIN"] = df_close["Close"].min()
+                row["AVG"] = df_close["Close"].mean()
+                row["MAX"] = df_close["Close"].max()
+
+                # ===== ARIMA 2,0,2 =====
+                forecast, conf = run_arima(df_close["Close"], forecast_period)
+
+                forecast_value = float(forecast.iloc[-1])
+
+                row["FORECAST VALUE"] = forecast_value
+                row["Δ % FORECAST"] = (
+                    (forecast_value - current_price) / current_price * 100
+                )
+
+            except Exception:
+                row["STATUS"] = "ARIMA ERROR"
+
+            rows.append(row)
+            progress_bar.progress(i / num_tickers)
+
         progress_bar.empty()
-        progress_text.empty()
-        
+
         df = pd.DataFrame(rows).round(2)
-        
-        def color_rows(row):
-            styles=[]
-            for col in row.index:
-                if col=="FORECAST VALUE" and not pd.isna(row[col]):
-                    styles.append("color: blue; font-weight:bold" if row[col]>row["ON MKT"] else "color:red;font-weight:bold")
-                elif col=="Δ % FORECAST" and not pd.isna(row[col]):
-                    styles.append("color:green;font-weight:bold" if row[col]>20 else ("color:magenta;font-weight:bold" if row[col]<0 else ""))
-                elif col=="STATUS" and row[col]!="OK":
-                    styles.append("color:orange;font-weight:bold")
-                else:
-                    styles.append("")
-            return styles
-        
-        row_height=35
-        header_height=40
-        table_height=header_height+row_height*len(df)
 
-        # ================================
-        # PREPARAZIONE DATAFRAME
-        # ================================
-        df_display = df.drop(columns=["STATUS"], errors="ignore").copy()
-        df_display.reset_index(drop=True, inplace=True)
-        
-        # Funzione per colorare le celle
-        def get_cell_style(row, col):
-            if col == "FORECAST VALUE" and not pd.isna(row[col]):
-                return "color:blue;font-weight:bold;" if row[col] > row["ON MKT"] else "color:red;font-weight:bold;"
-            if col == "Δ % FORECAST" and not pd.isna(row[col]):
-                if row[col] > 20:
-                    return "color:green;font-weight:bold;"
-                elif row[col] < 0:
-                    return "color:magenta;font-weight:bold;"
-            if col == "ON MKT" and not pd.isna(row[col]):
-                return "font-weight:bold;"
+        # FILTRO
+        df = df[df["Δ % FORECAST"].fillna(-999) >= min_filter]
+
+        # ORDINAMENTO
+        df = df.sort_values("Δ % FORECAST", ascending=False)
+
+        # STYLING
+        def style_forecast(val):
+            if pd.isna(val):
+                return ""
+            return "color:blue; font-weight:bold" if val > 0 else "color:red; font-weight:bold"
+
+        def style_delta(val):
+            if pd.isna(val):
+                return ""
+            if val > 20:
+                return "color:green; font-weight:bold"
+            if val < 0:
+                return "color:magenta; font-weight:bold"
             return ""
-        
-        # ================================
-        # COSTRUZIONE HTML
-        # ================================
-        html_table = '''
-        <div style="max-height:500px; overflow-y:auto; border:1px solid #ccc;">
-        <style>
-        table {border-collapse: collapse; width: 100%; font-family: inherit;}
-        thead th {position: sticky; top: 0; background-color: #f0f0f0; z-index:1; font-weight: normal; text-align: center; font-family: inherit;}
-        tbody tr:hover {background-color: #e0f7fa;}
-        td:first-child {text-align: left;}
-        td:not(:first-child) {text-align: right;}
-        th, td {border: 1px solid #ccc; padding: 5px; font-family: inherit;}
-        </style>
-        <table>
-        <thead><tr>
-        '''
-        
-        # header
-        for col in df_display.columns:
-            html_table += f'<th>{col}</th>'
-        html_table += '</tr></thead><tbody>'
-        
-        # corpo tabella
-        for _, row in df_display.iterrows():
-            html_table += '<tr>'
-            for i, col in enumerate(df_display.columns):
-                val = row[col]
-                if isinstance(val, (float, np.floating)):
-                    val = f"{val:.2f}"
-                style = get_cell_style(row, col)
-                if i == 0:
-                    style += " text-align: left;"
-                html_table += f'<td style="{style}">{val}</td>'
-            html_table += '</tr>'
-        
-        html_table += '</tbody></table></div>'
-        
-        # ================================
-        # DISPLAY HTML
-        # ================================
-        st.markdown(html_table, unsafe_allow_html=True)
 
+        styled_df = (
+            df.style
+            .applymap(style_forecast, subset=["FORECAST VALUE"])
+            .applymap(style_delta, subset=["Δ % FORECAST"])
+        )
+
+        st.dataframe(styled_df, use_container_width=True)
 
 # ================================
 # TAB 2 - CALCOLATORE
